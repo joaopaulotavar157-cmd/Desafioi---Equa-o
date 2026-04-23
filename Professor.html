@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Equação Master - Painel do Professor</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #1e293b; color: white; text-align: center; padding: 20px; }
+        .card { background: white; color: #1e293b; padding: 30px; border-radius: 20px; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 30px; }
+        .player-card { background: #334155; padding: 15px; border-radius: 10px; border-bottom: 5px solid #2563eb; }
+        .score { font-size: 2rem; font-weight: bold; color: #10b981; }
+        button { background: #10b981; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.5rem; cursor: pointer; margin-top: 20px; }
+        #winner-screen { position: fixed; inset: 0; background: #10b981; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+    </style>
+</head>
+<body>
+
+    <div id="lobby">
+        <div class="card">
+            <h1>Equação Master: Competição 🏆</h1>
+            <p>Escaneie para entrar no jogo:</p>
+            <div id="qrcode" style="margin: 20px auto; display: flex; justify-content: center;"></div>
+            <p id="url-text" style="color: #64748b; font-size: 0.8rem;"></p>
+            <button onclick="startCompetition()">INICIAR COMPETIÇÃO</button>
+        </div>
+    </div>
+
+    <div id="game-board" style="display:none">
+        <h1>Ranking em Tempo Real ⚖️</h1>
+        <p>Primeiro a 15 pontos vence!</p>
+        <div id="players-grid"></div>
+    </div>
+
+    <div id="winner-screen">
+        <h1 style="font-size: 5rem;">🏆 TEMOS UM VENCEDOR! 🏆</h1>
+        <h2 id="winner-name" style="font-size: 4rem;">---</h2>
+        <button onclick="location.reload()">NOVA PARTIDA</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDcMsD7XqEMS-RS_26S0e2yBNWu1yhN2Y",
+            authDomain: "equacao001.firebaseapp.com",
+            projectId: "equacao001",
+            storageBucket: "equacao001.firebasestorage.app",
+            messagingSenderId: "635636582707",
+            appId: "1:635636582707:web:65b4f8e22b7e6a7f121646",
+            databaseURL: "https://equacao001-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // GERAR QR CODE (Substitua pelo seu link do GitHub Pages)
+        const gameURL = window.location.href.replace('professor.html', 'index.html');
+        document.getElementById('url-text').innerText = gameURL;
+        new QRCode(document.getElementById("qrcode"), { text: gameURL, width: 250, height: 250 });
+
+        function startCompetition() {
+            db.ref('gameState').set('playing');
+            db.ref('winner').remove();
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('game-board').style.display = 'block';
+        }
+
+        // Monitorar Jogadores e Pontos
+        db.ref('players').on('value', snap => {
+            const grid = document.getElementById('players-grid');
+            grid.innerHTML = "";
+            const players = snap.val() || {};
+            
+            // Converte pra array e ordena por score
+            const sorted = Object.entries(players).sort((a,b) => b[1].score - a[1].score);
+
+            sorted.forEach(([name, data]) => {
+                const card = document.createElement('div');
+                card.className = "player-card";
+                card.innerHTML = `<h3>${name}</h3><div class="score">${data.score}</div>`;
+                grid.appendChild(card);
+            });
+        });
+
+        // Monitorar Vencedor
+        db.ref('winner').on('value', snap => {
+            if(snap.val()) {
+                document.getElementById('winner-name').innerText = snap.val();
+                document.getElementById('winner-screen').style.display = 'flex';
+            }
+        });
+    </script>
+</body>
+</html>

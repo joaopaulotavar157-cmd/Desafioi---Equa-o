@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Equação Master - Aluno</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+        :root { --bg: #f8fafc; --x-pos: #2563eb; --x-neg: #1e3a8a; --n-pos: #f59e0b; --n-neg: #475569; --active-green: #10b981; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* TELA DE LOGIN */
+        #login-screen { position: fixed; inset: 0; background: #2563eb; color: white; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        #login-screen input { padding: 15px; border-radius: 10px; border: none; width: 80%; max-width: 300px; margin: 20px 0; font-size: 1.1rem; }
+        #login-screen button { background: #10b981; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
+        
+        /* TELA DE ESPERA */
+        #waiting-screen { position: fixed; inset: 0; background: rgba(30, 41, 59, 0.95); color: white; z-index: 900; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+
+        header { background: white; padding: 8px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; }
+        #target-box { font-size: 0.8rem; font-weight: 800; color: #1e293b; background: #f1f5f9; padding: 4px 10px; border-radius: 8px; border: 2px solid #2563eb; }
+        .undo-btn { background: #64748b; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+
+        #math-bridge { background: #fff; margin: 5px 10px; padding: 8px; border-radius: 12px; border: 2px solid #cbd5e1; height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+        .math-line { font-family: 'Courier New', monospace; font-weight: bold; text-align: center; width: 100%; padding: 2px 0; }
+        .line-op { color: #ef4444; font-size: 0.9rem; font-style: italic; }
+        .line-res { color: #1e293b; font-size: 1.1rem; border-top: 1px solid #f1f5f9; }
+
+        #main-container { flex: 1; display: flex; width: 100%; position: relative; }
+        .sidebar { width: 50px; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 5px 0; border-right: 1px solid #e2e8f0; overflow-y: auto; }
+        .src-tile { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: white; font-weight: bold; font-size: 0.8rem; flex-shrink: 0; margin-bottom: 2px; }
+        .selected-tool { border: 4px solid #000 !important; transform: scale(1.1); }
+
+        #stage { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; padding: 5px; }
+        .balance-container { position: relative; width: 100%; height: 180px; }
+        #pivot { width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-bottom: 25px solid #94a3b8; position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); }
+        #pivot.equilibrated { border-bottom-color: var(--active-green); filter: drop-shadow(0 0 10px var(--active-green)); }
+        .beam { width: 100%; height: 6px; background: #cbd5e1; position: absolute; bottom: 40px; display: flex; justify-content: space-between; transform-origin: center center; }
+        .plate { width: 45%; min-height: 80px; background: rgba(0,0,0,0.03); border-top: 3px solid #64748b; margin-top: -80px; display: flex; flex-wrap: wrap; align-content: flex-end; padding: 4px; gap: 4px; border-radius: 6px 6px 0 0; }
+        .tile { padding: 4px 6px; border-radius: 4px; color: white; font-weight: bold; font-size: 11px; min-width: 22px; text-align: center; }
+
+        #win-banner { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); background: var(--active-green); color: white; padding: 25px; border-radius: 15px; text-align: center; display: none; z-index: 1000; width: 80%; }
+        #ctx-menu { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; display: none; flex-direction: column; padding: 15px; border-radius: 15px 15px 0 0; z-index: 2000; }
+        #ctx-menu button { background: #334155; color: white; border: none; padding: 15px; margin: 4px 0; border-radius: 8px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <h1>Equação Master ⚖️</h1>
+        <p>Digite seu nome para entrar na sala</p>
+        <input type="text" id="player-name" placeholder="Ex: João Paulo">
+        <button onclick="joinGame()">ENTRAR NO JOGO</button>
+    </div>
+
+    <div id="waiting-screen">
+        <h1>Olá, <span id="display-user"></span>!</h1>
+        <p>Aguarde o professor iniciar a competição...</p>
+    </div>
+
+    <header>
+        <div id="score-display" style="font-size: 0.7rem; color: #64748b; font-weight: bold;">Acertos: 0</div>
+        <div id="target-box">Meta: ...</div>
+        <button class="undo-btn" onclick="undo()">⟲</button>
+    </header>
+
+    <div id="math-bridge"><div id="log-container"></div></div>
+
+    <div id="main-container">
+        <div class="sidebar" id="side-neg">
+            <div class="src-tile" style="background:var(--x-neg);" onclick="selectTool('x', -1, this)">-x</div>
+        </div>
+        <div id="stage">
+            <div id="win-banner"><h2>CORRETO! 🌟</h2><p id="final-answer"></p></div>
+            <div class="balance-container">
+                <div id="pivot"></div>
+                <div class="beam" id="beam">
+                    <div id="plate-left" class="plate" onclick="handlePlateAction('left', event)"></div>
+                    <div id="plate-right" class="plate" onclick="handlePlateAction('right', event)"></div>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar" id="side-pos">
+            <div class="src-tile" style="background:var(--x-pos);" onclick="selectTool('x', 1, this)">x</div>
+        </div>
+    </div>
+
+    <div id="ctx-menu">
+        <button onclick="splitTile()">Desmembrar (Soma)</button>
+        <button onclick="divideTile()">Dividir em partes</button>
+        <button onclick="deleteTile()" style="background: #fb7185;">Remover</button>
+        <button onclick="closeMenu()" style="background: transparent;">Voltar</button>
+    </div>
+
+    <script>
+        // CONFIGURAÇÃO DO FIREBASE (SEUS DADOS)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDcMsD7XqEMS-RS_26S0e2yBNWu1yhN2Y",
+            authDomain: "equacao001.firebaseapp.com",
+            projectId: "equacao001",
+            storageBucket: "equacao001.firebasestorage.app",
+            messagingSenderId: "635636582707",
+            appId: "1:635636582707:web:65b4f8e22b7e6a7f121646",
+            databaseURL: "https://equacao001-default-rtdb.firebaseio.com/" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let playerName = "";
+        let score = 0;
+        const WIN_SCORE = 15;
+
+        function joinGame() {
+            const input = document.getElementById('player-name').value.trim();
+            if(!input) return alert("Digite seu nome!");
+            playerName = input;
+            document.getElementById('display-user').innerText = playerName;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('waiting-screen').style.display = 'flex';
+            
+            // Registra no Firebase
+            db.ref('players/' + playerName).set({ score: 0, status: 'online' });
+            
+            // Ouve se o jogo começou
+            db.ref('gameState').on('value', snap => {
+                if(snap.val() === 'playing') {
+                    document.getElementById('waiting-screen').style.display = 'none';
+                }
+            });
+        }
+
+        // --- LÓGICA DO JOGO (MESMA DA ÚLTIMA VERSÃO) ---
+        let currentLvl = { text: "", sol: 0, lx: 0, ln: 0, rx: 0, rn: 0 };
+        let selectedTool = null; let selectedEl = null; let hasValidatedInitial = false;
+        let recordedSteps = []; let stateHistory = []; let opTracker = {left:null, right:null}; let divTracker = {left:null, right:null};
+        let lastStableWeights = {lx:0, ln:0, rx:0, rn:0};
+
+        // Preencher Sidebar
+        for(let i=1; i<=9; i++) {
+            document.getElementById('side-neg').innerHTML += `<div class="src-tile" style="background:var(--n-neg)" onclick="selectTool('n', ${-i}, this)">-${i}</div>`;
+            document.getElementById('side-pos').innerHTML += `<div class="src-tile" style="background:var(--n-pos)" onclick="selectTool('n', ${i}, this)">${i}</div>`;
+        }
+
+        function selectTool(type, val, el) {
+            if (selectedTool && selectedTool.val === val && selectedTool.type === type) {
+                selectedTool = null; el.classList.remove('selected-tool');
+            } else {
+                document.querySelectorAll('.src-tile').forEach(t => t.classList.remove('selected-tool'));
+                selectedTool = { type, val }; el.classList.add('selected-tool');
+            }
+        }
+
+        function saveState() {
+            stateHistory.push({ l: document.getElementById('plate-left').innerHTML, r: document.getElementById('plate-right').innerHTML, v: hasValidatedInitial, rs: JSON.parse(JSON.stringify(recordedSteps)), sw: {...lastStableWeights}});
+            if(stateHistory.length > 20) stateHistory.shift();
+        }
+
+        function undo() {
+            if(!stateHistory.length) return;
+            let last = stateHistory.pop();
+            document.getElementById('plate-left').innerHTML = last.l; document.getElementById('plate-right').innerHTML = last.r;
+            hasValidatedInitial = last.v; recordedSteps = last.rs; lastStableWeights = last.sw;
+            renderLog(); updatePhysics(true);
+        }
+
+        function handlePlateAction(side, event) {
+            const target = event.target.closest('.tile');
+            if (selectedTool) {
+                saveState();
+                if (hasValidatedInitial) {
+                    opTracker[side] = selectedTool.val;
+                    if (opTracker.left !== null && opTracker.left === opTracker.right) {
+                        let opStr = opTracker.left > 0 ? " + " + opTracker.left : " - " + Math.abs(opTracker.left);
+                        recordedSteps.push({ text: `${formatMath(lastStableWeights.lx, lastStableWeights.ln)} ${opStr} = ${formatMath(lastStableWeights.rx, lastStableWeights.rn)} ${opStr}`, type: 'op' });
+                        renderLog(); opTracker = {left:null, right:null};
+                    }
+                }
+                if (target && target.dataset.type === selectedTool.type) {
+                    let v = parseInt(target.dataset.val) + selectedTool.val;
+                    if (v === 0) target.remove(); else updateTile(target, v);
+                } else createTile(side, selectedTool.type, selectedTool.val);
+                updatePhysics();
+            } else if (target) openMenu(target);
+        }
+
+        function updateTile(t, val, isNew = false) {
+            t.dataset.val = val; let type = t.dataset.type;
+            t.textContent = type === 'x' ? (val === 1 ? 'x' : (val === -1 ? "-x" : val + 'x')) : val;
+            t.style.backgroundColor = type === 'x' ? (val > 0 ? 'var(--x-pos)' : 'var(--x-neg)') : (val > 0 ? 'var(--n-pos)' : 'var(--n-neg)');
+            if (isNew) t.dataset.history = JSON.stringify([val]);
+            else { let h = JSON.parse(t.dataset.history || "[]"); h.push(selectedTool.val); t.dataset.history = JSON.stringify(h); }
+        }
+
+        function createTile(side, type, val) {
+            const p = document.getElementById(`plate-${side}`); const t = document.createElement('div');
+            t.className = `tile tile-${type}`; t.dataset.type = type; p.appendChild(t); updateTile(t, val, true);
+        }
+
+        function formatMath(x, n) {
+            let xStr = x === 0 ? "" : (x === 1 ? "x" : (x === -1 ? "-x" : x + "x"));
+            let nStr = n === 0 ? "" : (n > 0 ? (xStr ? " + " : "") + n : (xStr ? " - " : "-") + Math.abs(n));
+            return (xStr + nStr) || "0";
+        }
+
+        function renderLog() {
+            const container = document.getElementById('log-container'); container.innerHTML = "";
+            recordedSteps.forEach(s => { const d = document.createElement('div'); d.className = "math-line " + (s.type === 'op' ? 'line-op' : 'line-res'); d.innerText = s.text; container.appendChild(d); });
+            document.getElementById('math-bridge').scrollTop = document.getElementById('math-bridge').scrollHeight;
+        }
+
+        function updatePhysics(isUndo = false) {
+            const w = getWeights(); const diff = w.r - w.l;
+            document.getElementById('beam').style.transform = `rotate(${Math.max(Math.min(diff * 2, 20), -20)}deg)`;
+            const pivot = document.getElementById('pivot');
+            if (Math.abs(diff) < 0.1 && (w.lx !== 0 || w.rx !== 0 || w.ln !== 0 || w.rn !== 0)) {
+                pivot.classList.add('equilibrated');
+                if (!hasValidatedInitial && w.lx === currentLvl.lx && w.ln === currentLvl.ln && w.rx === currentLvl.rx && w.rn === currentLvl.rn) {
+                    hasValidatedInitial = true; lastStableWeights = { ...w }; recordedSteps = [{ text: currentLvl.text, type: 'res' }]; renderLog();
+                } else if (hasValidatedInitial && !isUndo) {
+                    const simpEq = `${formatMath(w.lx, w.ln)} = ${formatMath(w.rx, w.rn)}`;
+                    if (recordedSteps.length && simpEq !== recordedSteps[recordedSteps.length-1].text) {
+                        recordedSteps.push({ text: simpEq, type: 'res' }); lastStableWeights = { ...w }; renderLog();
+                    }
+                }
+                if (hasValidatedInitial) checkWin(w);
+            } else pivot.classList.remove('equilibrated');
+        }
+
+        function getWeights() {
+            const calc = (id) => {
+                let total = 0, x = 0, n = 0;
+                Array.from(document.getElementById(id).children).forEach(t => {
+                    const v = parseInt(t.dataset.val); if(t.dataset.type === 'x') { total += v * currentLvl.sol; x += v; } else { total += v; n += v; }
+                });
+                return { total, x, n };
+            };
+            const l = calc('plate-left'), r = calc('plate-right');
+            return { l: l.total, r: r.total, lx: l.x, ln: l.n, rx: r.x, rn: r.n };
+        }
+
+        function generateNewEquation() {
+            let x = Math.floor(Math.random() * 11) - 5; if(x===0) x=1;
+            let a = Math.floor(Math.random() * 4) + 2;
+            let b = Math.floor(Math.random() * 11) - 5;
+            let c = a * x + b;
+            currentLvl = { text: `${a}x ${b>=0?'+ '+b:'- '+Math.abs(b)} = ${c}`, sol: x, lx: a, ln: b, rx: 0, rn: c };
+            document.getElementById('target-box').innerText = "Meta: " + currentLvl.text;
+            document.getElementById('plate-left').innerHTML = ''; document.getElementById('plate-right').innerHTML = '';
+            document.getElementById('log-container').innerHTML = "";
+            hasValidatedInitial = false; recordedSteps = []; stateHistory = []; opTracker = {left:null, right:null}; divTracker = {left:null, right:null};
+            updatePhysics(true);
+        }
+
+        function checkWin(w) {
+            if ((w.lx === 1 && w.ln === 0 && w.rx === 0 && w.rn === currentLvl.sol) || (w.rx === 1 && w.rn === 0 && w.lx === 0 && w.ln === currentLvl.sol)) {
+                score++;
+                db.ref('players/' + playerName).update({ score: score });
+                document.getElementById('score-display').innerText = "Acertos: " + score;
+                document.getElementById('win-banner').style.display = 'block';
+                if(score >= WIN_SCORE) {
+                    document.getElementById('win-banner').innerHTML = "<h1>VOCÊ VENCEU! 🏆</h1><p>Aguarde o professor finalizar.</p>";
+                    db.ref('winner').set(playerName);
+                    return;
+                }
+                setTimeout(() => { document.getElementById('win-banner').style.display = 'none'; generateNewEquation(); }, 2000);
+            }
+        }
+
+        function openMenu(el) { selectedEl = el; document.getElementById('ctx-menu').style.display = 'flex'; }
+        function closeMenu() { document.getElementById('ctx-menu').style.display = 'none'; }
+        function deleteTile() { saveState(); selectedEl.remove(); updatePhysics(); closeMenu(); }
+        function splitTile() { saveState(); const h = JSON.parse(selectedEl.dataset.history || "[]"); if(h.length <= 1) { deleteTile(); return; } const side = selectedEl.parentElement.id.replace('plate-', ''); h.forEach(v => createTile(side, selectedEl.dataset.type, v)); selectedEl.remove(); updatePhysics(); closeMenu(); }
+        function divideTile() { const val = parseInt(selectedEl.dataset.val); const div = parseInt(prompt("Dividir por quanto?")); if(!div || div <= 1 || val % div !== 0) return closeMenu(); saveState(); const side = selectedEl.parentElement.id.replace('plate-', ''); divTracker[side] = div; if (divTracker.left !== null && divTracker.left === divTracker.right) { recordedSteps.push({ text: `(${formatMath(lastStableWeights.lx, lastStableWeights.ln)}) / ${div} = (${formatMath(lastStableWeights.rx, lastStableWeights.rn)}) / ${div}`, type: 'op' }); renderLog(); divTracker = { left: null, right: null }; } selectedEl.remove(); for(let i=0; i<div; i++) createTile(side, selectedEl.dataset.type, val/div); updatePhysics(true); closeMenu(); }
+
+        generateNewEquation();
+    </script>
+</body>
+</html>
