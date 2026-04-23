@@ -112,24 +112,40 @@
         let score = 0;
         const WIN_SCORE = 15;
 
-        function joinGame() {
-            const input = document.getElementById('player-name').value.trim();
-            if(!input) return alert("Digite seu nome!");
-            playerName = input;
-            document.getElementById('display-user').innerText = playerName;
-            document.getElementById('login-screen').style.display = 'none';
+    function joinGame() {
+    const input = document.getElementById('player-name').value.trim();
+    if(!input) return alert("Digite seu nome!");
+    playerName = input;
+    
+    document.getElementById('display-user').innerText = playerName;
+    document.getElementById('login-screen').style.display = 'none';
+    
+    // 1. Primeiro, checamos se o professor já iniciou
+    db.ref('gameState').once('value', snap => {
+        if(snap.val() === 'playing') {
+            alert("A rodada já está em andamento! Espere o professor reiniciar.");
+            location.reload(); // Recarrega para o aluno não entrar "no meio"
+        } else {
+            // 2. Se não iniciou, ele fica na tela de espera
             document.getElementById('waiting-screen').style.display = 'flex';
-            
-            // Registra no Firebase
             db.ref('players/' + playerName).set({ score: 0, status: 'online' });
-            
-            // Ouve se o jogo começou
-            db.ref('gameState').on('value', snap => {
-                if(snap.val() === 'playing') {
-                    document.getElementById('waiting-screen').style.display = 'none';
-                }
-            });
         }
+    });
+}
+
+// Escutador para o comando de início do professor
+db.ref('gameState').on('value', snap => {
+    if(snap.val() === 'playing') {
+        // Só esconde a tela de espera se o nome já tiver sido preenchido
+        if(playerName !== "") {
+            document.getElementById('waiting-screen').style.display = 'none';
+            generateNewEquation(); // Gera a primeira conta só na hora do "Valendo!"
+        }
+    } else if (snap.val() === 'waiting') {
+        // Se o professor resetar, o aluno volta para a espera ou login
+        document.getElementById('waiting-screen').style.display = 'flex';
+    }
+});
 
         // --- LÓGICA DO JOGO (MESMA DA ÚLTIMA VERSÃO) ---
         let currentLvl = { text: "", sol: 0, lx: 0, ln: 0, rx: 0, rn: 0 };
