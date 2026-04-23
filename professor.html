@@ -58,12 +58,20 @@
         document.getElementById('url-text').innerText = gameURL;
         new QRCode(document.getElementById("qrcode"), { text: gameURL, width: 250, height: 250 });
 
-        function startCompetition() {
-            db.ref('gameState').set('playing');
-            db.ref('winner').remove();
-            document.getElementById('lobby').style.display = 'none';
-            document.getElementById('game-board').style.display = 'block';
-        }
+        db.ref('gameState').set('waiting'); 
+db.ref('winner').remove();
+
+function startCompetition() {
+    // 1. Limpa os jogadores da rodada passada
+    db.ref('players').remove(); 
+    // 2. Limpa o vencedor anterior
+    db.ref('winner').remove();
+    // 3. AGORA SIM, avisa os celulares que o jogo começou
+    db.ref('gameState').set('playing'); 
+    
+    document.getElementById('lobby').style.display = 'none';
+    document.getElementById('game-board').style.display = 'block';
+}
 
         // Monitorar Jogadores e Pontos
         db.ref('players').on('value', snap => {
