@@ -19,29 +19,37 @@
 
         header { background: white; padding: 8px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; }
         #target-box { font-size: 0.8rem; font-weight: 800; color: #1e293b; background: #f1f5f9; padding: 4px 10px; border-radius: 8px; border: 2px solid #2563eb; }
-        .undo-btn { background: #64748b; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .undo-btn { background: #64748b; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 
-        #math-bridge { background: #fff; margin: 5px 10px; padding: 8px; border-radius: 12px; border: 2px solid #cbd5e1; height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+        #math-bridge { background: #fff; margin: 5px 10px; padding: 8px; border-radius: 12px; border: 2px solid #cbd5e1; height: 130px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
         .math-line { font-family: 'Courier New', monospace; font-weight: bold; text-align: center; width: 100%; padding: 2px 0; }
         .line-op { color: #ef4444; font-size: 0.9rem; font-style: italic; }
         .line-res { color: #1e293b; font-size: 1.1rem; border-top: 1px solid #f1f5f9; }
 
         #main-container { flex: 1; display: flex; width: 100%; position: relative; }
-        .sidebar { width: 50px; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 5px 0; border-right: 1px solid #e2e8f0; overflow-y: auto; }
-        .src-tile { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: white; font-weight: bold; font-size: 0.8rem; flex-shrink: 0; margin-bottom: 2px; }
-        .selected-tool { border: 4px solid #000 !important; transform: scale(1.1); }
+        
+        /* Aumentei a lateral para os botões maiores */
+        .sidebar { width: 60px; background: white; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 5px 0; border-right: 1px solid #e2e8f0; overflow-y: auto; }
+        
+        /* BOTÕES DE ORIGEM MAIORES */
+        .src-tile { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: white; font-weight: bold; font-size: 1rem; flex-shrink: 0; margin-bottom: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .selected-tool { border: 4px solid #000 !important; transform: scale(1.05); }
 
         #stage { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; padding: 5px; }
-        .balance-container { position: relative; width: 100%; height: 180px; }
+        .balance-container { position: relative; width: 100%; height: 210px; }
         #pivot { width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-bottom: 25px solid #94a3b8; position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); }
         #pivot.equilibrated { border-bottom-color: var(--active-green); filter: drop-shadow(0 0 10px var(--active-green)); }
-        .beam { width: 100%; height: 6px; background: #cbd5e1; position: absolute; bottom: 40px; display: flex; justify-content: space-between; transform-origin: center center; }
-        .plate { width: 45%; min-height: 80px; background: rgba(0,0,0,0.03); border-top: 3px solid #64748b; margin-top: -80px; display: flex; flex-wrap: wrap; align-content: flex-end; padding: 4px; gap: 4px; border-radius: 6px 6px 0 0; }
-        .tile { padding: 4px 6px; border-radius: 4px; color: white; font-weight: bold; font-size: 11px; min-width: 22px; text-align: center; }
+        .beam { width: 100%; height: 8px; background: #cbd5e1; position: absolute; bottom: 40px; display: flex; justify-content: space-between; transform-origin: center center; }
+        
+        /* PRATOS MAIORES PARA CABER OS BLOCOS */
+        .plate { width: 46%; min-height: 100px; background: rgba(0,0,0,0.03); border-top: 4px solid #64748b; margin-top: -100px; display: flex; flex-wrap: wrap; align-content: flex-end; padding: 6px; gap: 6px; border-radius: 8px 8px 0 0; }
+        
+        /* BLOCOS DENTRO DA BALANÇA MUITO MAIORES */
+        .tile { padding: 8px 10px; border-radius: 6px; color: white; font-weight: bold; font-size: 15px; min-width: 38px; min-height: 38px; text-align: center; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
 
-        #win-banner { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); background: var(--active-green); color: white; padding: 25px; border-radius: 15px; text-align: center; display: none; z-index: 1000; width: 80%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        #ctx-menu { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; display: none; flex-direction: column; padding: 15px; border-radius: 15px 15px 0 0; z-index: 2000; }
-        #ctx-menu button { background: #334155; color: white; border: none; padding: 15px; margin: 4px 0; border-radius: 8px; font-weight: bold; }
+        #win-banner { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); background: var(--active-green); color: white; padding: 25px; border-radius: 15px; text-align: center; display: none; z-index: 1000; width: 85%; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+        #ctx-menu { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; display: none; flex-direction: column; padding: 20px; border-radius: 20px 20px 0 0; z-index: 2000; }
+        #ctx-menu button { background: #334155; color: white; border: none; padding: 18px; margin: 5px 0; border-radius: 10px; font-weight: bold; font-size: 1.1rem; }
     </style>
 </head>
 <body>
@@ -59,7 +67,7 @@
     </div>
 
     <header>
-        <div id="score-display" style="font-size: 0.7rem; color: #64748b; font-weight: bold;">Acertos: 0 / 15</div>
+        <div id="score-display" style="font-size: 0.8rem; color: #64748b; font-weight: bold;">Acertos: 0 / 15</div>
         <div id="target-box">Meta: ...</div>
         <button class="undo-btn" onclick="undo()">⟲</button>
     </header>
@@ -73,8 +81,8 @@
         <div id="stage">
             <div id="win-banner">
                 <h2 id="win-title">CORRETO! 🌟</h2>
-                <p id="final-answer" style="font-size: 1.4rem; font-weight: bold; margin: 10px 0;"></p>
-                <button id="next-btn" onclick="nextRound()" style="background: white; color: var(--active-green); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 0 #059669;">Próxima Equação ➔</button>
+                <p id="final-answer" style="font-size: 1.6rem; font-weight: bold; margin: 15px 0;"></p>
+                <button id="next-btn" onclick="nextRound()" style="background: white; color: var(--active-green); border: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 1.1rem; box-shadow: 0 4px 0 #059669;">Próxima Equação ➔</button>
             </div>
             <div class="balance-container">
                 <div id="pivot"></div>
@@ -93,7 +101,7 @@
         <button onclick="splitTile()">Desmembrar (Soma)</button>
         <button onclick="divideTile()">Dividir em partes</button>
         <button onclick="deleteTile()" style="background: #fb7185;">Remover</button>
-        <button onclick="closeMenu()" style="background: transparent;">Voltar</button>
+        <button onclick="closeMenu()" style="background: transparent; padding-top: 10px;">Voltar</button>
     </div>
 
     <script>
@@ -133,7 +141,7 @@
             document.getElementById('login-screen').style.display = 'none';
             db.ref('gameState').once('value', snap => {
                 if(snap.val() === 'playing') {
-                    alert("A rodada já está em andamento! Espere o professor reiniciar.");
+                    alert("A rodada já está em andamento!");
                     location.reload();
                 } else {
                     document.getElementById('waiting-screen').style.display = 'flex';
