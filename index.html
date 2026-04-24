@@ -27,11 +27,7 @@
         .line-res { color: #1e293b; font-size: 1.1rem; border-top: 1px solid #f1f5f9; }
 
         #main-container { flex: 1; display: flex; width: 100%; position: relative; }
-        
-        /* Aumentei a lateral para os botões maiores */
         .sidebar { width: 60px; background: white; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 5px 0; border-right: 1px solid #e2e8f0; overflow-y: auto; }
-        
-        /* BOTÕES DE ORIGEM MAIORES */
         .src-tile { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: white; font-weight: bold; font-size: 1rem; flex-shrink: 0; margin-bottom: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .selected-tool { border: 4px solid #000 !important; transform: scale(1.05); }
 
@@ -41,10 +37,9 @@
         #pivot.equilibrated { border-bottom-color: var(--active-green); filter: drop-shadow(0 0 10px var(--active-green)); }
         .beam { width: 100%; height: 8px; background: #cbd5e1; position: absolute; bottom: 40px; display: flex; justify-content: space-between; transform-origin: center center; }
         
-        /* PRATOS MAIORES PARA CABER OS BLOCOS */
-        .plate { width: 46%; min-height: 100px; background: rgba(0,0,0,0.03); border-top: 4px solid #64748b; margin-top: -100px; display: flex; flex-wrap: wrap; align-content: flex-end; padding: 6px; gap: 6px; border-radius: 8px 8px 0 0; }
+        /* PRATOS SEM LIMITES (REMOVI BORDA E FUNDO) */
+        .plate { width: 46%; min-height: 100px; background: transparent; margin-top: -100px; display: flex; flex-wrap: wrap; align-content: flex-end; padding: 6px; gap: 6px; }
         
-        /* BLOCOS DENTRO DA BALANÇA MUITO MAIORES */
         .tile { padding: 8px 10px; border-radius: 6px; color: white; font-weight: bold; font-size: 15px; min-width: 38px; min-height: 38px; text-align: center; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
 
         #win-banner { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); background: var(--active-green); color: white; padding: 25px; border-radius: 15px; text-align: center; display: none; z-index: 1000; width: 85%; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
