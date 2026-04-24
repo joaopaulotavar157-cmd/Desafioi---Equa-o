@@ -8,30 +8,41 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: sans-serif; background: #1e293b; color: white; text-align: center; padding: 20px; }
-        .card { background: white; color: #1e293b; padding: 30px; border-radius: 20px; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .card { background: white; color: #1e293b; padding: 30px; border-radius: 20px; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.5); min-width: 320px; }
         #players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 30px; }
         .player-card { background: #334155; padding: 15px; border-radius: 10px; border-bottom: 5px solid #2563eb; }
         .score { font-size: 2rem; font-weight: bold; color: #10b981; }
-        button { background: #10b981; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.5rem; cursor: pointer; margin-top: 20px; }
+        button { background: #10b981; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 1.5rem; cursor: pointer; margin-top: 20px; font-weight: bold; }
         #winner-screen { position: fixed; inset: 0; background: #10b981; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        #qrcode { background: white; padding: 10px; display: inline-block; border-radius: 10px; margin: 20px 0; }
     </style>
 </head>
 <body>
 
     <div id="lobby">
-        <div style="margin: 20px 0; background: #f1f5f9; padding: 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
-    <label style="font-weight: bold; display: block; margin-bottom: 8px; color: #1e293b;">
-        Pontos para vencer:
-    </label>
-    <input type="number" id="win-limit" value="15" min="1" max="50" 
-           style="font-size: 1.2rem; padding: 8px; width: 80px; text-align: center; border-radius: 5px; border: 2px solid #2563eb;">
-</div>
-<button onclick="startCompetition()">INICIAR COMPETIÇÃO</button>
+        <div class="card">
+            <h1 style="margin-bottom: 10px;">Equação Master ⚖️</h1>
+            <p style="color: #64748b;">Escaneie para entrar na sala:</p>
+            
+            <div id="qrcode"></div> 
+            
+            <p id="url-text" style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 20px;"></p>
+
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px;">
+                <label style="font-weight: bold; display: block; margin-bottom: 8px; color: #1e293b;">
+                    Meta de acertos para vencer:
+                </label>
+                <input type="number" id="win-limit" value="15" min="1" max="50" 
+                       style="font-size: 1.2rem; padding: 8px; width: 80px; text-align: center; border-radius: 5px; border: 2px solid #2563eb;">
+            </div>
+
+            <button onclick="startCompetition()">INICIAR COMPETIÇÃO</button>
+        </div>
     </div>
 
     <div id="game-board" style="display:none">
         <h1>Ranking em Tempo Real ⚖️</h1>
-        <p>Primeiro a 15 pontos vence!</p>
+        <p id="current-goal-text">Primeiro a chegar na meta vence!</p>
         <div id="players-grid"></div>
     </div>
 
@@ -54,42 +65,37 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // Lógica do QR Code
         const currentURL = window.location.href;
         const gameURL = currentURL.includes('professor.html') 
                         ? currentURL.replace('professor.html', 'index.html') 
-                        : currentURL + 'index.html';
+                        : currentURL + (currentURL.endsWith('/') ? 'index.html' : '/index.html');
         
         document.getElementById('url-text').innerText = gameURL;
         
-        // Limpa o QR Code anterior antes de gerar um novo
-        document.getElementById("qrcode").innerHTML = "";
         new QRCode(document.getElementById("qrcode"), {
             text: gameURL,
-            width: 250,
-            height: 250,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
+            width: 200,
+            height: 200
         });
 
+        // Reset inicial do jogo
         db.ref('gameState').set('waiting'); 
-db.ref('winner').remove();
+        db.ref('winner').remove();
 
-function startCompetition() {
-   // 1. Pega o valor definido pelo professor
-    const limit = document.getElementById('win-limit').value || 15;
-    
-    // 2. Salva a meta no Firebase para todos os alunos saberem
-    db.ref('winScore').set(parseInt(limit));
-    
-    // 3. Reseta os dados da rodada anterior
-    db.ref('players').remove(); 
-    db.ref('winner').remove();
-    db.ref('gameState').set('playing'); 
-    
-    document.getElementById('lobby').style.display = 'none';
-    document.getElementById('game-board').style.display = 'block';
-}
+        function startCompetition() {
+            const limit = document.getElementById('win-limit').value || 15;
+            db.ref('winScore').set(parseInt(limit));
+            
+            // Limpa jogadores da rodada anterior para não misturar
+            db.ref('players').remove(); 
+            db.ref('winner').remove();
+            db.ref('gameState').set('playing'); 
+            
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('game-board').style.display = 'block';
+            document.getElementById('current-goal-text').innerText = `O primeiro a fazer ${limit} pontos vence!`;
+        }
 
         // Monitorar Jogadores e Pontos
         db.ref('players').on('value', snap => {
@@ -97,7 +103,6 @@ function startCompetition() {
             grid.innerHTML = "";
             const players = snap.val() || {};
             
-            // Converte pra array e ordena por score
             const sorted = Object.entries(players).sort((a,b) => b[1].score - a[1].score);
 
             sorted.forEach(([name, data]) => {
