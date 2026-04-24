@@ -19,13 +19,14 @@
 <body>
 
     <div id="lobby">
-        <div class="card">
-            <h1>Equação Master: Competição 🏆</h1>
-            <p>Escaneie para entrar no jogo:</p>
-            <div id="qrcode" style="margin: 20px auto; display: flex; justify-content: center;"></div>
-            <p id="url-text" style="color: #64748b; font-size: 0.8rem;"></p>
-            <button onclick="startCompetition()">INICIAR COMPETIÇÃO</button>
-        </div>
+        <div style="margin: 20px 0; background: #f1f5f9; padding: 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
+    <label style="font-weight: bold; display: block; margin-bottom: 8px; color: #1e293b;">
+        Pontos para vencer:
+    </label>
+    <input type="number" id="win-limit" value="15" min="1" max="50" 
+           style="font-size: 1.2rem; padding: 8px; width: 80px; text-align: center; border-radius: 5px; border: 2px solid #2563eb;">
+</div>
+<button onclick="startCompetition()">INICIAR COMPETIÇÃO</button>
     </div>
 
     <div id="game-board" style="display:none">
@@ -62,11 +63,15 @@
 db.ref('winner').remove();
 
 function startCompetition() {
-    // 1. Limpa os jogadores da rodada passada
+   // 1. Pega o valor definido pelo professor
+    const limit = document.getElementById('win-limit').value || 15;
+    
+    // 2. Salva a meta no Firebase para todos os alunos saberem
+    db.ref('winScore').set(parseInt(limit));
+    
+    // 3. Reseta os dados da rodada anterior
     db.ref('players').remove(); 
-    // 2. Limpa o vencedor anterior
     db.ref('winner').remove();
-    // 3. AGORA SIM, avisa os celulares que o jogo começou
     db.ref('gameState').set('playing'); 
     
     document.getElementById('lobby').style.display = 'none';
