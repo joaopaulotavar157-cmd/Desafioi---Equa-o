@@ -110,7 +110,23 @@
 
         let playerName = "";
         let score = 0;
-        const WIN_SCORE = 15;
+        let winScore = 15; // Valor padrão inicial
+        
+        // Escuta o Firebase para saber qual a meta que o professor escolheu
+        db.ref('winScore').on('value', snap => {
+            if(snap.val()) {
+                winScore = snap.val();
+                updateScoreUI(); // Atualiza o placar na tela do aluno
+            }
+        });
+
+function updateScoreUI() {
+    // Procura o elemento do placar e atualiza o texto
+    const scoreDiv = document.getElementById('score-display');
+    if(scoreDiv) {
+        scoreDiv.innerText = `Acertos: ${score} / ${winScore}`;
+    }
+}
 
     function joinGame() {
     const input = document.getElementById('player-name').value.trim();
@@ -276,7 +292,7 @@ db.ref('gameState').on('value', snap => {
                 document.getElementById('score-display').innerText = "Acertos: " + score;
                 document.getElementById('win-banner').style.display = 'block';
                 if(score >= WIN_SCORE) {
-                    document.getElementById('win-banner').innerHTML = "<h1>VOCÊ VENCEU! 🏆</h1><p>Aguarde o professor finalizar.</p>";
+                    document.getElementById('win-banner').innerHTML = `<h1>VOCÊ VENCEU! 🏆</h1><p>Fez ${winScore} pontos!</p>`;
                     db.ref('winner').set(playerName);
                     return;
                 }
