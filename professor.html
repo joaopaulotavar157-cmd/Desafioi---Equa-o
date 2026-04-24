@@ -54,10 +54,23 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // GERAR QR CODE (Substitua pelo seu link do GitHub Pages)
-        const gameURL = window.location.href.replace('professor.html', 'index.html');
+        const currentURL = window.location.href;
+        const gameURL = currentURL.includes('professor.html') 
+                        ? currentURL.replace('professor.html', 'index.html') 
+                        : currentURL + 'index.html';
+        
         document.getElementById('url-text').innerText = gameURL;
-        new QRCode(document.getElementById("qrcode"), { text: gameURL, width: 250, height: 250 });
+        
+        // Limpa o QR Code anterior antes de gerar um novo
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), {
+            text: gameURL,
+            width: 250,
+            height: 250,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
 
         db.ref('gameState').set('waiting'); 
 db.ref('winner').remove();
