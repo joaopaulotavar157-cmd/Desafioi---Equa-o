@@ -11,12 +11,10 @@
         :root { --bg: #f8fafc; --x-pos: #2563eb; --x-neg: #1e3a8a; --n-pos: #f59e0b; --n-neg: #475569; --active-green: #10b981; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        /* TELA DE LOGIN */
         #login-screen { position: fixed; inset: 0; background: #2563eb; color: white; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
         #login-screen input { padding: 15px; border-radius: 10px; border: none; width: 80%; max-width: 300px; margin: 20px 0; font-size: 1.1rem; }
         #login-screen button { background: #10b981; color: white; border: none; padding: 15px 40px; border-radius: 10px; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
         
-        /* TELA DE ESPERA */
         #waiting-screen { position: fixed; inset: 0; background: rgba(30, 41, 59, 0.95); color: white; z-index: 900; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 
         header { background: white; padding: 8px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; }
@@ -41,7 +39,7 @@
         .plate { width: 45%; min-height: 80px; background: rgba(0,0,0,0.03); border-top: 3px solid #64748b; margin-top: -80px; display: flex; flex-wrap: wrap; align-content: flex-end; padding: 4px; gap: 4px; border-radius: 6px 6px 0 0; }
         .tile { padding: 4px 6px; border-radius: 4px; color: white; font-weight: bold; font-size: 11px; min-width: 22px; text-align: center; }
 
-        #win-banner { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); background: var(--active-green); color: white; padding: 25px; border-radius: 15px; text-align: center; display: none; z-index: 1000; width: 80%; }
+        #win-banner { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); background: var(--active-green); color: white; padding: 25px; border-radius: 15px; text-align: center; display: none; z-index: 1000; width: 80%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         #ctx-menu { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; display: none; flex-direction: column; padding: 15px; border-radius: 15px 15px 0 0; z-index: 2000; }
         #ctx-menu button { background: #334155; color: white; border: none; padding: 15px; margin: 4px 0; border-radius: 8px; font-weight: bold; }
     </style>
@@ -61,7 +59,7 @@
     </div>
 
     <header>
-        <div id="score-display" style="font-size: 0.7rem; color: #64748b; font-weight: bold;">Acertos: 0</div>
+        <div id="score-display" style="font-size: 0.7rem; color: #64748b; font-weight: bold;">Acertos: 0 / 15</div>
         <div id="target-box">Meta: ...</div>
         <button class="undo-btn" onclick="undo()">⟲</button>
     </header>
@@ -73,7 +71,11 @@
             <div class="src-tile" style="background:var(--x-neg);" onclick="selectTool('x', -1, this)">-x</div>
         </div>
         <div id="stage">
-            <div id="win-banner"><h2>CORRETO! 🌟</h2><p id="final-answer"></p></div>
+            <div id="win-banner">
+                <h2 id="win-title">CORRETO! 🌟</h2>
+                <p id="final-answer" style="font-size: 1.4rem; font-weight: bold; margin: 10px 0;"></p>
+                <button id="next-btn" onclick="nextRound()" style="background: white; color: var(--active-green); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 0 #059669;">Próxima Equação ➔</button>
+            </div>
             <div class="balance-container">
                 <div id="pivot"></div>
                 <div class="beam" id="beam">
@@ -95,7 +97,6 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO DO FIREBASE (SEUS DADOS)
         const firebaseConfig = {
             apiKey: "AIzaSyCDcMsD7XqEMS-RS_26S0e2yBNWu1yhN2Y",
             authDomain: "equacao001.firebaseapp.com",
@@ -110,66 +111,55 @@
 
         let playerName = "";
         let score = 0;
-        let winScore = 15; // Valor padrão inicial
+        let winScore = 15;
         
-        // Escuta o Firebase para saber qual a meta que o professor escolheu
         db.ref('winScore').on('value', snap => {
             if(snap.val()) {
                 winScore = snap.val();
-                updateScoreUI(); // Atualiza o placar na tela do aluno
+                updateScoreUI();
             }
         });
 
-function updateScoreUI() {
-    // Procura o elemento do placar e atualiza o texto
-    const scoreDiv = document.getElementById('score-display');
-    if(scoreDiv) {
-        scoreDiv.innerText = `Acertos: ${score} / ${winScore}`;
-    }
-}
-
-    function joinGame() {
-    const input = document.getElementById('player-name').value.trim();
-    if(!input) return alert("Digite seu nome!");
-    playerName = input;
-    
-    document.getElementById('display-user').innerText = playerName;
-    document.getElementById('login-screen').style.display = 'none';
-    
-    // 1. Primeiro, checamos se o professor já iniciou
-    db.ref('gameState').once('value', snap => {
-        if(snap.val() === 'playing') {
-            alert("A rodada já está em andamento! Espere o professor reiniciar.");
-            location.reload(); // Recarrega para o aluno não entrar "no meio"
-        } else {
-            // 2. Se não iniciou, ele fica na tela de espera
-            document.getElementById('waiting-screen').style.display = 'flex';
-            db.ref('players/' + playerName).set({ score: 0, status: 'online' });
+        function updateScoreUI() {
+            const scoreDiv = document.getElementById('score-display');
+            if(scoreDiv) scoreDiv.innerText = `Acertos: ${score} / ${winScore}`;
         }
-    });
-}
 
-// Escutador para o comando de início do professor
-db.ref('gameState').on('value', snap => {
-    if(snap.val() === 'playing') {
-        // Só esconde a tela de espera se o nome já tiver sido preenchido
-        if(playerName !== "") {
-            document.getElementById('waiting-screen').style.display = 'none';
-            generateNewEquation(); // Gera a primeira conta só na hora do "Valendo!"
+        function joinGame() {
+            const input = document.getElementById('player-name').value.trim();
+            if(!input) return alert("Digite seu nome!");
+            playerName = input;
+            document.getElementById('display-user').innerText = playerName;
+            document.getElementById('login-screen').style.display = 'none';
+            db.ref('gameState').once('value', snap => {
+                if(snap.val() === 'playing') {
+                    alert("A rodada já está em andamento! Espere o professor reiniciar.");
+                    location.reload();
+                } else {
+                    document.getElementById('waiting-screen').style.display = 'flex';
+                    db.ref('players/' + playerName).set({ score: 0, status: 'online' });
+                }
+            });
         }
-    } else if (snap.val() === 'waiting') {
-        // Se o professor resetar, o aluno volta para a espera ou login
-        document.getElementById('waiting-screen').style.display = 'flex';
-    }
-});
 
-        // --- LÓGICA DO JOGO (MESMA DA ÚLTIMA VERSÃO) ---
+        db.ref('gameState').on('value', snap => {
+            if(snap.val() === 'playing') {
+                if(playerName !== "") {
+                    document.getElementById('waiting-screen').style.display = 'none';
+                    generateNewEquation();
+                }
+            } else if (snap.val() === 'waiting') {
+                document.getElementById('waiting-screen').style.display = 'flex';
+                score = 0;
+                updateScoreUI();
+            }
+        });
+
         let currentLvl = { text: "", sol: 0, lx: 0, ln: 0, rx: 0, rn: 0 };
         let selectedTool = null; let selectedEl = null; let hasValidatedInitial = false;
         let recordedSteps = []; let stateHistory = []; let opTracker = {left:null, right:null}; let divTracker = {left:null, right:null};
         let lastStableWeights = {lx:0, ln:0, rx:0, rn:0};
 
-        // Preencher Sidebar
         for(let i=1; i<=9; i++) {
             document.getElementById('side-neg').innerHTML += `<div class="src-tile" style="background:var(--n-neg)" onclick="selectTool('n', ${-i}, this)">-${i}</div>`;
             document.getElementById('side-pos').innerHTML += `<div class="src-tile" style="background:var(--n-pos)" onclick="selectTool('n', ${i}, this)">${i}</div>`;
@@ -289,15 +279,24 @@ db.ref('gameState').on('value', snap => {
             if ((w.lx === 1 && w.ln === 0 && w.rx === 0 && w.rn === currentLvl.sol) || (w.rx === 1 && w.rn === 0 && w.lx === 0 && w.ln === currentLvl.sol)) {
                 score++;
                 db.ref('players/' + playerName).update({ score: score });
-                document.getElementById('score-display').innerText = "Acertos: " + score;
+                updateScoreUI();
+                
                 document.getElementById('win-banner').style.display = 'block';
-                if(score >= WIN_SCORE) {
-                    document.getElementById('win-banner').innerHTML = `<h1>VOCÊ VENCEU! 🏆</h1><p>Fez ${winScore} pontos!</p>`;
+                document.getElementById('final-answer').innerText = "x = " + currentLvl.sol;
+
+                if(score >= winScore) {
+                    document.getElementById('win-title').innerText = "🏆 VOCÊ VENCEU! 🏆";
+                    document.getElementById('final-answer').innerText = `Fez ${winScore} pontos!`;
+                    document.getElementById('next-btn').style.display = 'none';
                     db.ref('winner').set(playerName);
                     return;
                 }
-                setTimeout(() => { document.getElementById('win-banner').style.display = 'none'; generateNewEquation(); }, 2000);
             }
+        }
+
+        function nextRound() {
+            document.getElementById('win-banner').style.display = 'none';
+            generateNewEquation();
         }
 
         function openMenu(el) { selectedEl = el; document.getElementById('ctx-menu').style.display = 'flex'; }
@@ -305,8 +304,6 @@ db.ref('gameState').on('value', snap => {
         function deleteTile() { saveState(); selectedEl.remove(); updatePhysics(); closeMenu(); }
         function splitTile() { saveState(); const h = JSON.parse(selectedEl.dataset.history || "[]"); if(h.length <= 1) { deleteTile(); return; } const side = selectedEl.parentElement.id.replace('plate-', ''); h.forEach(v => createTile(side, selectedEl.dataset.type, v)); selectedEl.remove(); updatePhysics(); closeMenu(); }
         function divideTile() { const val = parseInt(selectedEl.dataset.val); const div = parseInt(prompt("Dividir por quanto?")); if(!div || div <= 1 || val % div !== 0) return closeMenu(); saveState(); const side = selectedEl.parentElement.id.replace('plate-', ''); divTracker[side] = div; if (divTracker.left !== null && divTracker.left === divTracker.right) { recordedSteps.push({ text: `(${formatMath(lastStableWeights.lx, lastStableWeights.ln)}) / ${div} = (${formatMath(lastStableWeights.rx, lastStableWeights.rn)}) / ${div}`, type: 'op' }); renderLog(); divTracker = { left: null, right: null }; } selectedEl.remove(); for(let i=0; i<div; i++) createTile(side, selectedEl.dataset.type, val/div); updatePhysics(true); closeMenu(); }
-
-        generateNewEquation();
     </script>
 </body>
 </html>
